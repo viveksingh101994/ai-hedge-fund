@@ -74,6 +74,36 @@ arrives when it finishes (✅ or ❌ with the failing step and a log link).
 If you installed the Mac schedule, remove it so runs don't double up:
 `.venv/bin/aihf-paper uninstall-schedule`.
 
+## 5. The 08:00 alarm clock (Cloudflare Worker, once)
+
+GitHub's own schedule starts runs hours late, or skips them, when Actions is
+busy (the top of every hour is the busiest). So a free Cloudflare Worker
+presses "Run workflow" at 08:00 UTC instead; GitHub's timer stays as an
+off-peak backup (08:37 and 11:07 UTC) that does nothing once the day has
+succeeded.
+
+1. **GitHub token** (only you see it): github.com → Settings → Developer
+   settings → Personal access tokens → **Fine-grained tokens** → Generate new
+   token. Name it `hedge-fund-alarm`; pick the longest expiry; Repository
+   access → **Only select repositories** → `ai-hedge-fund-runner`;
+   Permissions → Repository → **Actions: Read and write**. Copy the token.
+2. **Deploy** (a free Cloudflare account; the first command opens a browser to log in):
+
+   ```bash
+   cd deploy/cloudflare-trigger
+   npx wrangler login
+   npx wrangler deploy
+   npx wrangler secret put GITHUB_TOKEN
+   ```
+
+   The last command asks for the token: paste it there, never into a chat.
+3. **Check** without starting a run: open the `…workers.dev` address that
+   `deploy` printed, with `/check` on the end. It should say `"ok": true`.
+
+When the token expires, make a new one and run `npx wrangler secret put
+GITHUB_TOKEN` again. Workflow runs started by hand ("Run workflow") always
+run; only the alarm and the backup timers skip a day that already succeeded.
+
 ## Day to day
 
 - **Switch modes:** change the `RUN_MODE` variable (website or GitHub app).

@@ -1,0 +1,18 @@
+# The 08:00 UTC alarm clock for the private runner repo (deploy/README.md §5).
+# GitHub's own schedule starts hours late at busy times; a Cloudflare cron fires on
+# time and presses "Run workflow" through GitHub's API.
+name = "hedge-fund-alarm"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[triggers]
+crons = ["0 8 * * MON-FRI"]   # Cloudflare counts weekdays from Sunday = 1, so use names
+
+[vars]
+REPO = "viveksingh101994/ai-hedge-fund-runner"
+WORKFLOW = "daily.yml"
+REF = "main"
+
+# Secret (never in this file): GITHUB_TOKEN, a fine-grained token limited to the
+# runner repo with "Actions: Read and write". Set it with `npx wrangler secret put GITHUB_TOKEN`.

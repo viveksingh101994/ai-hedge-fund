@@ -136,3 +136,22 @@ the always-run state commit.
 
 Telegram commands (two-way control), Cloudflare, an always-on VM, web
 dashboards.
+
+## 9. Addendum (2026-10-12): an outside alarm clock
+
+In the first week GitHub's `0 8 * * 1-5` schedule started runs 6–7 hours
+late (14:47, 15:16, 15:01 UTC) and skipped two days entirely; late runs fail
+paper reconcile (after the US open) and trade at intraday prices. GitHub
+documents that scheduled runs are delayed or dropped under load, worst at the
+top of the hour.
+
+- **Primary trigger:** a Cloudflare Worker cron (`0 8 * * MON-FRI`, free)
+  calls the workflow_dispatch API with `inputs.source = alarm`, using a
+  fine-grained token limited to the runner repo with Actions read/write
+  (a Worker secret the user sets). `GET /check` verifies the token without
+  starting a run. Code: `deploy/cloudflare-trigger/`.
+- **Backup:** GitHub schedules at off-peak minutes, 08:37 and 11:07 UTC.
+- **Same-day skip:** a successful run writes the UTC date to
+  `state/last-success`; scheduled and alarm runs skip every later step when
+  it already holds today's date (no message, no state commit). Manual runs
+  always run. A failed run doesn't mark the day, so a backup retries it.

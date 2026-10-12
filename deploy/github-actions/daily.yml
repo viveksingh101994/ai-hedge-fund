@@ -2,10 +2,20 @@
 name: hedge-fund daily
 
 on:
+  # The main alarm is the Cloudflare Worker in deploy/cloudflare-trigger, which presses
+  # "Run workflow" at 08:00 UTC: GitHub's own schedule runs hours late or not at all at
+  # busy times. These off-peak timers are only a backup; a day that already ran
+  # successfully skips them.
   schedule:
-    - cron: "0 8 * * 1-5"          # 08:00 UTC weekdays: US pre-market all year
+    - cron: "37 8 * * 1-5"
+    - cron: "7 11 * * 1-5"
   workflow_dispatch:
     inputs:
+      source:
+        description: "Who pressed Run: manual always runs; alarm skips a day that already succeeded"
+        type: choice
+        options: ["manual", "alarm"]
+        default: "manual"
       mode:
         description: "Override RUN_MODE for this run (blank = the RUN_MODE variable)"
         type: choice
@@ -39,10 +49,22 @@ jobs:
           ref: state
           path: state
 
+      - name: Already ran today?
+        id: gate
+        env:
+          AUTOMATIC: ${{ github.event_name == 'schedule' || inputs.source == 'alarm' }}
+        run: |
+          if [ "$AUTOMATIC" = "true" ] && [ "$(cat state/last-success 2>/dev/null)" = "$(date -u +%F)" ]; then
+            echo "Today already ran successfully; this automatic run does nothing."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Link state to ~/.hedge-fund
+        if: steps.gate.outputs.skip != 'true'
         run: ln -sfn "$GITHUB_WORKSPACE/state" "$HOME/.hedge-fund"
 
       - name: Restore market database
+        if: steps.gate.outputs.skip != 'true'
         uses: actions/cache/restore@v4
         with:
           path: state/market.db
@@ -50,14 +72,17 @@ jobs:
           restore-keys: market-db-
 
       - uses: actions/setup-python@v5
+        if: steps.gate.outputs.skip != 'true'
         with:
           python-version: "3.12"
 
       - name: Install
+        if: steps.gate.outputs.skip != 'true'
         run: pip install uv && uv pip install --system -e code/
 
       - name: Run
         id: run
+        if: steps.gate.outputs.skip != 'true'
         env:
           APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
           APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
@@ -69,15 +94,19 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: aihf-daily --notify
 
+      - name: Mark today done
+        if: success() && steps.gate.outputs.skip != 'true'
+        run: date -u +%F > state/last-success
+
       - name: Save market database
-        if: always() && hashFiles('state/market.db') != ''
+        if: always() && steps.gate.outputs.skip != 'true' && hashFiles('state/market.db') != ''
         uses: actions/cache/save@v4
         with:
           path: state/market.db
           key: market-db-${{ github.run_id }}
 
       - name: Save state
-        if: always()
+        if: always() && steps.gate.outputs.skip != 'true'
         working-directory: state
         run: |
           git config user.name "hedge-fund-bot"
