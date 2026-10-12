@@ -150,8 +150,10 @@ top of the hour.
   fine-grained token limited to the runner repo with Actions read/write
   (a Worker secret the user sets). `GET /check` verifies the token without
   starting a run. Code: `deploy/cloudflare-trigger/`.
-- **Backup:** GitHub schedules at off-peak minutes, 08:37 and 11:07 UTC.
+- **No GitHub schedule** (user's choice, 2026-10-12): the workflow is
+  dispatch-only. If the Worker fails, that day doesn't run unless the user
+  presses Run.
 - **Same-day skip:** a successful run writes the UTC date to
-  `state/last-success`; scheduled and alarm runs skip every later step when
-  it already holds today's date (no message, no state commit). Manual runs
-  always run. A failed run doesn't mark the day, so a backup retries it.
+  `state/last-success`; alarm runs (and scheduled ones, if a schedule is
+  ever re-added) skip every later step when it already holds today's date
+  (no message, no state commit). Manual runs always run.

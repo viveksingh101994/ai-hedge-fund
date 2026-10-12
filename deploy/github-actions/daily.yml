@@ -2,17 +2,13 @@
 name: hedge-fund daily
 
 on:
-  # The main alarm is the Cloudflare Worker in deploy/cloudflare-trigger, which presses
-  # "Run workflow" at 08:00 UTC: GitHub's own schedule runs hours late or not at all at
-  # busy times. These off-peak timers are only a backup; a day that already ran
-  # successfully skips them.
-  schedule:
-    - cron: "37 8 * * 1-5"
-    - cron: "7 11 * * 1-5"
+  # No GitHub schedule: it ran hours late or not at all at busy times. The Cloudflare
+  # Worker in deploy/cloudflare-trigger presses "Run workflow" at 08:00 UTC on weekdays
+  # (source: alarm); you can press it by hand any time (source: manual).
   workflow_dispatch:
     inputs:
       source:
-        description: "Who pressed Run: manual always runs; alarm skips a day that already succeeded"
+        description: "Who pressed Run: manual always runs; the alarm skips a day that already succeeded"
         type: choice
         options: ["manual", "alarm"]
         default: "manual"

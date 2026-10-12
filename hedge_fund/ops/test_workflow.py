@@ -8,8 +8,8 @@ WORKFLOW = Path(__file__).resolve().parents[2] / "deploy" / "github-actions" / "
 def test_workflow_shape():
     wf = yaml.safe_load(WORKFLOW.read_text())
     triggers = wf.get("on") or wf.get(True)                 # YAML 1.1 reads a bare `on` as True
-    # off-peak backups only; the 08:00 alarm is the Cloudflare Worker (GitHub's top-of-hour cron runs late)
-    assert triggers["schedule"] == [{"cron": "37 8 * * 1-5"}, {"cron": "7 11 * * 1-5"}]
+    # no GitHub schedule (it ran hours late); the 08:00 alarm is the Cloudflare Worker
+    assert set(triggers) == {"workflow_dispatch"}
     assert triggers["workflow_dispatch"]["inputs"]["source"]["options"] == ["manual", "alarm"]
     assert wf["concurrency"]["group"] == "hedge-fund-daily" and wf["concurrency"]["cancel-in-progress"] is False
     steps = wf["jobs"]["daily"]["steps"]

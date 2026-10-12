@@ -1,6 +1,7 @@
 # Scheduled runs on GitHub Actions + Telegram
 
-Runs the daily routine (`aihf-daily`) at 08:00 UTC on weekdays — US
+Runs the daily routine (`aihf-daily`) at 08:00 UTC on weekdays (started by a
+Cloudflare Worker, §5) — US
 pre-market all year — without your laptop, and sends the result to Telegram.
 It runs in a **private** repo: this public fork can't be made private, and
 the saved state contains your account values and positions.
@@ -77,10 +78,10 @@ If you installed the Mac schedule, remove it so runs don't double up:
 ## 5. The 08:00 alarm clock (Cloudflare Worker, once)
 
 GitHub's own schedule starts runs hours late, or skips them, when Actions is
-busy (the top of every hour is the busiest). So a free Cloudflare Worker
-presses "Run workflow" at 08:00 UTC instead; GitHub's timer stays as an
-off-peak backup (08:37 and 11:07 UTC) that does nothing once the day has
-succeeded.
+busy (the top of every hour is the busiest). So the workflow has no GitHub
+schedule at all: a free Cloudflare Worker presses "Run workflow" at 08:00 UTC
+instead. If the Worker ever fails, nothing runs that day; press "Run
+workflow" yourself before 14:30 UK.
 
 1. **GitHub token** (only you see it): github.com → Settings → Developer
    settings → Personal access tokens → **Fine-grained tokens** → Generate new
@@ -102,7 +103,7 @@ succeeded.
 
 When the token expires, make a new one and run `npx wrangler secret put
 GITHUB_TOKEN` again. Workflow runs started by hand ("Run workflow") always
-run; only the alarm and the backup timers skip a day that already succeeded.
+run; only the alarm skips a day that already succeeded.
 
 ## Day to day
 
